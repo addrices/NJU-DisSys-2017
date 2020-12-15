@@ -45,12 +45,31 @@ type Raft struct {
 	peers     []*labrpc.ClientEnd
 	persister *Persister
 	me        int // index into peers[]
-
+	
 	// Your data here.
 	// Look at the paper's Figure 2 for a description of what
 	// state a Raft server must maintain.
 
+	currentTerm int 	// latest term server has seen
+	votedFor int 		//candidateId that received vote in current term
+	log LogEntry[] 		//log entries;each entry contains command for state machine
+	
+	commitIndex int 	//index of highest log entry known to be committed
+	lastApplied int		//index of highest log entry applied to state machine
+	
+	nextIndex []int		//for each server,index of the next log entry to send to that server
+	matchIndex []int 	//for each server,index opf highest log entry known to be replicated on server
+	
+	votedMe int 		//how many node vote me
+	state string		//follower candidate leader
+
 }
+
+//AppendEntries RPC
+type AppendEntry struct{
+	Term int	//leader's term
+}
+
 
 // return currentTerm and whether this server
 // believes it is the leader.
