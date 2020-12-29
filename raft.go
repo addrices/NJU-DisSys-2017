@@ -455,7 +455,7 @@ func (rf *Raft) handleAppendEntries(server int, reply AppendEntryReply) {
 
 	if reply.Success{
 		//fmt.Printf("\nhandleAppendEntries: is true "+strconv.Itoa(rf.me))
-		rf.nextIndex[server] = reply.   + 1
+		rf.nextIndex[server] = reply.CommitIndex + 1
 		rf.matchIndex[server] = reply.CommitIndex
 		count :=1
 		i :=0

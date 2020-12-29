@@ -326,6 +326,22 @@ func (cfg *config) nCommitted(index int) (int, interface{}) {
 
 		cfg.mu.Lock()
 		cmd1, ok := cfg.logs[i][index]
+		// fmt.Printf("=====commit search commit=====\n")
+		// if ok {
+		// 	fmt.Printf("visit i:%d index:%d cmd:%d\n",i,index,cmd1)
+		// }else{
+		// 	fmt.Printf("visit i:%d index:%d notok\n",i,index)
+		// }
+		// for i_ := 0;i_ < len(cfg.logs);i_++{
+		// 	for index_ := 0;index_ < len(cfg.logs[i]);index_++{
+		// 		cmd, ok := cfg.logs[i_][index_]
+		// 		if ok{
+		// 			fmt.Printf("i:%d index:%d cmd:%d\n",i_,index_,cmd)
+		// 		} else{ 
+		// 			fmt.Printf("i:%d index:%d not ok\n",i_,index_)
+		// 		}
+		// 	}
+		// } 
 		cfg.mu.Unlock()
 
 		if ok {
@@ -382,7 +398,7 @@ func (cfg *config) wait(index int, n int, startTerm int) interface{} {
 func (cfg *config) one(cmd int, expectedServers int) int {
 	t0 := time.Now()
 	starts := 0
-	for time.Since(t0).Seconds() < 10 {
+	for time.Since(t0).Seconds() < 2 {
 		// try all the servers, maybe one is the leader.
 		index := -1
 		for si := 0; si < cfg.n; si++ {
@@ -396,18 +412,31 @@ func (cfg *config) one(cmd int, expectedServers int) int {
 			if rf != nil {
 				index1, _, ok := rf.Start(cmd)
 				if ok {
+					// fmt.Printf("start %d %d\n",index1,cmd)
 					index = index1
 					break
 				}
 			}
 		}
-
+		// fmt.Printf("middle index:%d\n",index)
+		// fmt.Printf("=====search commit=====\n")
+		// for i := 0;i < len(cfg.logs);i++{
+		// 	for j := 0;j < len(cfg.logs[i]);j++{
+		// 		cmd, ok := cfg.logs[i][j]
+		// 		if ok{
+		// 			fmt.Printf("i:%d index:%d cmd:%d\n",i,j,cmd)
+		// 		} else{ 
+		// 			fmt.Printf("i:%d index:%d not ok\n",i,j)
+		// 		}
+		// 	}
+		// } 
 		if index != -1 {
 			// somebody claimed to be the leader and to have
 			// submitted our command; wait a while for agreement.
 			t1 := time.Now()
 			for time.Since(t1).Seconds() < 2 {
 				nd, cmd1 := cfg.nCommitted(index)
+				// fmt.Printf("====%d %d %d expect %d====\n",index,nd, cmd1,expectedServers )
 				if nd > 0 && nd >= expectedServers {
 					// committed
 					if cmd2, ok := cmd1.(int); ok && cmd2 == cmd {

@@ -22,7 +22,7 @@ import "labrpc"
 
 // import "bytes"
 // import "encoding/gob"
-// import "fmt"
+import "fmt"
 import "time"
 import "math/rand"
 
@@ -95,7 +95,8 @@ type AppendEntryArg struct{
 type AppendEntryReply struct{
 	Term int			//currentTerm,for leader to update itself
 	Success bool		//true if follower contained entry matching prevLogIndex and prevLogTerm
-	CommitIndex int
+	HeartBeat bool		//is HeartBeat
+	Index int			//index
 }
 
 
@@ -153,7 +154,7 @@ func (rf *Raft) AskVote() {
 	rf.currentTerm += 1
 	rf.votedFor = rf.me
 	var votesCount int = 1
-	// fmt.Printf("%d ask Vote!! term:%d state:%s\n",rf.me,rf.currentTerm,rf.state)
+	fmt.Printf("%d ask Vote!! term:%d total:%d\n",rf.me,rf.currentTerm,len(rf.peers))
 
 	var args RequestVoteArgs
 	args.Term = rf.currentTerm
@@ -177,8 +178,11 @@ func (rf *Raft) AskVote() {
 			if ok {
 				if reply.VoteGranted == true{
 					votesCount++;
-					if(votesCount >= (len(rf.peers))/2 + 1){
-						// fmt.Printf("%d is new LEADER\n",rf.me)						
+					if(votesCount > (len(rf.peers))/2){
+						fmt.Printf("%d is new LEADER\n",rf.me)
+						for i := 0;i < len(rf.logs);i++{
+							fmt.Printf("%d %d\n",rf.logs[i].Command,rf.logs[i].Term)
+						}					
 						rf.state = "LEADER"
 						for i := 0; i < len(rf.peers); i++ {
 							if i == rf.me {
@@ -187,31 +191,127 @@ func (rf *Raft) AskVote() {
 							rf.nextIndex[i] = len(rf.logs)
 							rf.matchIndex[i] = -1
 						}
+						rf.SendAppendEntries()
+						rf.restartTime()
 					}
 				}
 			}
 		}(peer, args)
-
 	}
+	rf.restartTime()
+}
+
+func (rf *Raft) persist() {
+	// Your code here.
+	// Example:
+	// w := new(bytes.Buffer)
+	// e := gob.NewEncoder(w)
+	// e.Encode(rf.xxx)
+	// e.Encode(rf.yyy)
+	// data := w.Bytes()
+	// rf.persister.SaveRaftState(data)
+}
+
+//
+// restore previously persisted state.
+//
+func (rf *Raft) readPersist(data []byte) {
+	// Your code here.
+	// Example:
+	// r := bytes.NewBuffer(data)
+	// d := gob.NewDecoder(r)
+	// d.Decode(&rf.xxx)
+	// d.Decode(&rf.yyy)
+}
+
+func (rf *Raft) commit() {
+	// var args ApplyMsg
+	// if (rf.state == "LEADER") == true{
+	// 	fmt.Printf("isLeader\n")
+	// } else {
+	// 	fmt.Printf("isNotLeader\n")
+	// }
+	// fmt.Printf("rf.me:%d\n",rf.me)
+	// fmt.Printf("index:%d\n",rf.lastApplied)
+	// fmt.Printf("rf.logs:%d\n",rf.logs[rf.lastApplied].Command)
+
+	// rf.mu.Lock()
+	// defer rf.mu.Unlock()
+	var args ApplyMsg
+	args.Index = rf.lastApplied+1
+	args.Command = rf.logs[rf.lastApplied].Command
+	fmt.Printf("%d commit %d %d\n",rf.me,rf.lastApplied,args.Command)
+	rf.applyCh <- args
 }
 
 func (rf *Raft) AppendEntries(args AppendEntryArg,reply *AppendEntryReply){
 	rf.mu.Lock()
 	defer rf.mu.Unlock()
-	// fmt.Printf("%d receive heartbeat",rf.me)
+	// fmt.Printf("%d receive heartbeat\n",rf.me)
+	reply.HeartBeat = false
+	reply.Index = args.PrevLogIndex+1
 	if args.Term < rf.currentTerm{
 		reply.Success = false
 		reply.Term = rf.currentTerm
-		// fmt.Printf("AppendEntries:args.Term < rf.currentTerm voterequest from %d \n",args.leader)
+		fmt.Printf("AppendEntries:args.Term < rf.currentTerm voterequest from %d \n",args.LeaderId)
 	} else {
-		// rf.state = "FOLLOWER"
-		// rf.currentTerm = args.Term
-		// rf.votedFor = reply.Term
-		
-		// reply.Success = true
-		// AppendEntryReply		
-		// reply.Term = rf.currentTerm
 		rf.state = "FOLLOWER"
+		rf.currentTerm = args.Term
+		reply.Term = args.Term
+		rf.votedFor = -1
+		if args.Entries != nil{
+			fmt.Printf("%d receive AppendEntries command:%d Term:%d PrevLogIndex:%d PrevLogTerm:%d LeaderCommit:%d",rf.me,args.Entries[0].Command,args.Term,args.PrevLogIndex,args.PrevLogTerm,args.LeaderCommit)
+		} 
+
+		if args.PrevLogIndex >=0 && (len(rf.logs)-1 < args.PrevLogIndex || rf.logs[args.PrevLogIndex].Term != args.PrevLogTerm){
+			reply.Success = false
+			rf.logs = rf.logs[:args.PrevLogIndex]
+		} else if args.Entries != nil{	//说明发送的带有entry
+			fmt.Printf("%d get log %d len(rf):%d\n",rf.me, args.PrevLogIndex,len(rf.logs))
+			fmt.Printf("%d receive Leadercommit %d localcommit %d \n",rf.me, args.LeaderCommit,rf.commitIndex)
+			// fmt.Printf("===========%d logs==========\n",rf.me)
+			// fmt.Printf("args.PrevLogIndex:%d\n",args.PrevLogIndex)
+			// for i := 0; i < len(rf.logs); i++ {
+			// 	fmt.Printf("%d command:%d term:%d\n",i,rf.logs[i].Command,rf.logs[i].Term)
+			// }
+			fmt.Printf("before args.PrevLogIndex:%d\n",args.PrevLogIndex)
+			for i:= 0;i < len(rf.logs);i++{
+				fmt.Printf("%d command:%d term:%d\n",i,rf.logs[0].Command,rf.logs[0].Term)
+			}
+			rf.logs = rf.logs[:args.PrevLogIndex+1]
+			fmt.Printf("middle\n")
+			for i:= 0;i < len(rf.logs);i++{
+				fmt.Printf("%d command:%d term:%d\n",i,rf.logs[0].Command,rf.logs[0].Term)
+			}
+			rf.logs = append(rf.logs, args.Entries ...)
+			fmt.Printf("after\n")
+			for i:= 0;i < len(rf.logs);i++{
+				fmt.Printf("%d command:%d term:%d\n",i,rf.logs[0].Command,rf.logs[0].Term)
+			}
+			reply.Success = true
+			if rf.commitIndex < args.LeaderCommit{
+				rf.commitIndex = args.LeaderCommit
+				if(args.LeaderCommit > len(rf.logs)-1){
+					rf.commitIndex = len(rf.logs)-1
+				}
+				rf.lastApplied = rf.commitIndex
+				go rf.commit()
+			}
+		} else{							//纯心跳
+			fmt.Printf("%d receive heartbeat commitIndex %d LeaderCommit %d\n",rf.me,rf.commitIndex,args.LeaderCommit)
+			if rf.commitIndex < args.LeaderCommit{
+				rf.commitIndex = args.LeaderCommit
+				if(args.LeaderCommit > len(rf.logs)-1){
+					rf.commitIndex = len(rf.logs)-1
+				}
+				rf.lastApplied = rf.commitIndex
+				go rf.commit()
+			}
+
+			reply.Success = true
+			reply.HeartBeat = true
+		}
+		// AppendEntryReply		
 		// fmt.Printf("%d get heartbeat, restart \n",rf.me)
 		rf.restartTime()
 	}
@@ -222,19 +322,32 @@ func (rf *Raft) SendAppendEntry(peer int){
 		return
 	}
 	var entry AppendEntryArg
-	entry.Term = rf.currentTerm
 	entry.LeaderId = rf.me
+	entry.LeaderCommit = rf.commitIndex
+	entry.Term = rf.currentTerm
+
+
 	entry.PrevLogIndex = rf.nextIndex[peer]-1
 	if entry.PrevLogIndex >=0 {
 		entry.PrevLogTerm = rf.logs[entry.PrevLogIndex].Term
 	}
-	if rf.nextIndex[peer] < len(rf.logs) {
+	if rf.nextIndex[peer] < len(rf.logs){
 		entry.Entries = rf.logs[rf.nextIndex[peer]:]
+		fmt.Printf("SEND ENTRIES rf.nextIndex[peer]:%d\n",rf.nextIndex[peer])
+		for i:= 0;i < len(entry.Entries);i++{
+			fmt.Printf("%d command:%d term:%d\n",i,rf.logs[i].Command,rf.logs[i].Term)
+		}
+		// fmt.Printf("%d len:%d rf.nextIndex[peer]:%d\n",rf.me,len(rf.logs),rf.nextIndex[peer])
+	} else {
+		entry.Entries = nil
+		// fmt.Printf("%d len:%d rf.nextIndex[peer]:%d\n",rf.me,len(rf.logs),rf.nextIndex[peer])
 	}
 
-	entry.LeaderCommit = rf.commitIndex
 	go func(server int, args AppendEntryArg) {
 		var reply AppendEntryReply
+		if args.Entries != nil{
+			fmt.Printf("%d send AppendEntries peer:%d Term:%d LeaderId:%d PrevLogIndex:%d LeaderCommit:%d\n",rf.me,peer,entry.Term, entry.LeaderId, entry.PrevLogIndex, entry.LeaderCommit)
+		}
 		ok := rf.peers[server].Call("Raft.AppendEntries", args, &reply)
 		if ok {
 			rf.handleAppendEntry(server, reply)
@@ -261,30 +374,30 @@ func (rf *Raft) handleAppendEntry(server int, reply AppendEntryReply) {
 	}
 
 	//接受了 
-	// if reply.Success{
-	// 	rf.nextIndex[server] = reply.CommitIndex + 1
-	// 	rf.matchIndex[server] = reply.CommitIndex
-	// 	count :=1
-	// 	for i := 0; i < len(rf.peers); i++{
-	// 		if i == rf.me{
-	// 			continue
-	// 		}
-	// 		else if rf.matchIndex[i] >= rf.matchIndex[server]{
-	// 			count += 1
-	// 		}
-	// 	}
-	// 	if count >= len(rf.peers)/2+1{
-	// 		if rf.commitIndex < rf.matchIndex[server] &&
-	// 		rf.logs[rf.matchIndex[server]].Term == rf.currentTerm {
-	// 			rf.commitIndex = rf.matchIndex[server]
-	// 			go rf.commit()
-	// 		}
-	// 	}
-
-	// }else{
-	// 	rf.nextIndex[server] = reply.CommitIndex + 1
-	// 	rf.SendAppendEntries()
-	// }
+	if reply.Success && reply.HeartBeat == false{
+		rf.nextIndex[server] = reply.Index + 1
+		rf.matchIndex[server] = reply.Index
+		// fmt.Printf("handle %d rf.matchIndex %d %d \n",reply.Index,server,rf.matchIndex[server])
+		count :=1
+		for i := 0; i < len(rf.peers); i = i+1{
+			if i!=rf.me && rf.matchIndex[i] >= rf.matchIndex[server]{
+				count += 1
+			}
+			//fmt.Printf("\nhandleAppendEntries: "+strconv.Itoa(i))
+		}	
+		// fmt.Printf("count %d %d \n",count,len(rf.peers)/2)	
+		if count > len(rf.peers)/2{
+			rf.commitIndex = reply.Index
+			fmt.Printf("Leader commit update index %d\n",rf.commitIndex)
+			rf.lastApplied = rf.commitIndex
+			go rf.commit()
+		}
+	}else if reply.HeartBeat == false{
+		if rf.nextIndex[server] >= 0{
+			rf.nextIndex[server] = rf.nextIndex[server] - 1
+		}
+		rf.SendAppendEntry(server)
+	}
 }
 
 func (rf *Raft) SendAppendEntries() {
@@ -298,9 +411,9 @@ func (rf *Raft) Timeout() {
 
 	rf.mu.Lock()
 	defer rf.mu.Unlock()
-	// fmt.Printf("peer %d Timeout,i'm %s\n",rf.me,rf.state)
 	if rf.state != "LEADER" {
 		rf.state = "CANDIDATE"
+		fmt.Printf("peer %d Timeout,term:%d,i'm askvote\n",rf.me,rf.currentTerm)
 		rf.AskVote()
 	} else {
 		rf.SendAppendEntries()
@@ -355,6 +468,9 @@ func (rf *Raft) RequestVote(args RequestVoteArgs, reply *RequestVoteReply) {
 		} else if rf.logs[len(rf.logs)-1].Term == args.LastLogTerm && len(rf.logs)-1 > args.LastLogIndex {
 			can_vote = false
 		}
+		if can_vote == false{
+			fmt.Printf("%d i'cant vote CandidateId:%d it's LastLogTerm:%d myLastLogTerm:%d\n",rf.me,args.CandidateId,args.LastLogTerm,rf.logs[len(rf.logs)-1].Term)
+		}
 	}
 
 	if args.Term == rf.currentTerm {
@@ -368,7 +484,13 @@ func (rf *Raft) RequestVote(args RequestVoteArgs, reply *RequestVoteReply) {
 			reply.VoteGranted = (rf.votedFor == args.CandidateId)
 		}
 		// fmt.Printf("i'm %d args.Term %d rf.currentTerm %d, i vote %d\n",rf.me,args.Term,rf.currentTerm,args.CandidateId)
-		rf.restartTime()
+		if reply.VoteGranted {
+			fmt.Printf("%d vote %d",rf.me,rf.votedFor)
+			for i := 0;i < len(rf.logs);i++{
+				fmt.Printf("%d %d\n",rf.logs[i].Command,rf.logs[i].Term)
+			}	
+			rf.restartTime()
+		}
 		return
 	}
 
@@ -383,12 +505,18 @@ func (rf *Raft) RequestVote(args RequestVoteArgs, reply *RequestVoteReply) {
 			rf.votedFor = args.CandidateId
 		}
 
-		rf.restartTime()
 		// fmt.Printf("i'm %d args.Term %d rf.currentTerm %d, i vote %d and i restart\n",rf.me,args.Term,rf.currentTerm,rf.votedFor)
 
 		reply.Term = args.Term
 		reply.VoteGranted = (rf.votedFor == args.CandidateId)
 		// fmt.Printf("\nreceive request: "+strconv.Itoa(rf.me)+" "+ strconv.Itoa(len(rf.logs))+" "+ strconv.Itoa(rf.currentTerm))
+		if reply.VoteGranted {
+			fmt.Printf("%d vote %d\n",rf.me,rf.votedFor)
+			for i := 0;i < len(rf.logs);i++{
+				fmt.Printf("%d %d\n",rf.logs[i].Command,rf.logs[i].Term)
+			}	
+			rf.restartTime()
+		}
 
 		return
 	}
@@ -436,7 +564,7 @@ func (rf *Raft) Start(command interface{}) (int, int, bool) {
 	rf.mu.Lock()
 	defer rf.mu.Unlock()
 	index := -1
-	term := -1
+	term := rf.currentTerm
 	isLeader := false
 	if rf.state != "LEADER"{
 		return index, term, isLeader
@@ -447,11 +575,21 @@ func (rf *Raft) Start(command interface{}) (int, int, bool) {
 	newlog.Term = rf.currentTerm
 	rf.logs = append(rf.logs,newlog)
 	index = len(rf.logs)
+	// for i := 0;i < len(rf.nextIndex);i++{
+	// 	fmt.Printf("%d nextIndex %d\n",i,rf.nextIndex[i])
+	// }
+	fmt.Printf("rf start command %d \n",newlog.Command)
+	fmt.Printf("%d len(rflog):%d\n",rf.me,len(rf.logs))
+	rf.SendAppendEntries()
 	isLeader = true
 	term = rf.currentTerm
-
+	// fmt.Printf("return\n")
 
 	return index, term, isLeader
+}
+
+func (rf *Raft) GetRfLenLog() (int){
+	return len(rf.logs)
 }
 
 //
@@ -478,22 +616,25 @@ func (rf *Raft) Kill() {
 func Make(peers []*labrpc.ClientEnd, me int,
 	persister *Persister, applyCh chan ApplyMsg) *Raft {
 	rf := &Raft{}
-	rf.mu.Lock()
-	defer rf.mu.Unlock()
 	rf.peers = peers
+	rf.persister = persister
 	rf.me = me
-	rf.applyCh = applyCh	//what's this
 
 	// Your initialization code here.
 	rf.currentTerm = 0
 	rf.votedFor = -1
 	rf.state = "FOLLOWER"
+	rf.applyCh = applyCh
+
 	rf.logs = make([]LogEntry,0)
 	rf.commitIndex = -1
 	rf.lastApplied = -1
 
 	rf.nextIndex = make([]int,len(peers))
 	rf.matchIndex = make([]int,len(peers))
+	// initialize from state persisted before a crash
+	rf.readPersist(persister.ReadRaftState())
+	rf.persist()
 	rf.restartTime()
 
 	return rf

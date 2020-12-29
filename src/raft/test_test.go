@@ -154,7 +154,7 @@ func TestFailNoAgree(t *testing.T) {
 	cfg.disconnect((leader + 1) % servers)
 	cfg.disconnect((leader + 2) % servers)
 	cfg.disconnect((leader + 3) % servers)
-
+	fmt.Printf("=====================1pass====================\n")
 	index, _, ok := cfg.rafts[leader].Start(20)
 	if ok != true {
 		t.Fatalf("leader rejected Start()")
@@ -162,13 +162,15 @@ func TestFailNoAgree(t *testing.T) {
 	if index != 2 {
 		t.Fatalf("expected index 2, got %v", index)
 	}
-	
+
 	time.Sleep(2 * RaftElectionTimeout)
 
 	n, _ := cfg.nCommitted(index)
+	fmt.Printf("n:%d",n)
 	if n > 0 {
 		t.Fatalf("%v committed but no majority", n)
 	}
+	fmt.Printf("=====================2pass====================\n")
 
 	// repair failures
 	cfg.connect((leader + 1) % servers)
@@ -301,6 +303,7 @@ func TestRejoin(t *testing.T) {
 	fmt.Printf("Test: rejoin of partitioned leader ...\n")
 
 	cfg.one(101, servers)
+	fmt.Printf("=====================1pass====================\n")
 
 	// leader network failure
 	leader1 := cfg.checkOneLeader()
@@ -313,20 +316,25 @@ func TestRejoin(t *testing.T) {
 
 	// new leader commits, also for index=2
 	cfg.one(103, 2)
+	fmt.Printf("=====================2pass====================\n")
 
 	// new leader network failure
 	leader2 := cfg.checkOneLeader()
 	cfg.disconnect(leader2)
+	fmt.Printf("=====================disconnect(leader2)====================\n")
 
 	// old leader connected again
 	cfg.connect(leader1)
+	fmt.Printf("=====================connect(leader1)====================\n")
 
 	cfg.one(104, 2)
+	fmt.Printf("=====================3pass====================\n")
 
 	// all together now
 	cfg.connect(leader2)
 
 	cfg.one(105, servers)
+	fmt.Printf("=====================4pass====================\n")
 
 	fmt.Printf("  ... Passed\n")
 }

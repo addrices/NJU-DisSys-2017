@@ -1,0 +1,340 @@
+Test: rejoin of partitioned leader ...
+peer 0 Timeout,term:0,i'm askvote
+0 ask Vote!! term:1 total:3
+2 vote 0
+0 is new LEADER
+1 vote 0
+0 is new LEADER
+2 receive heartbeat commitIndex -1 LeaderCommit -1
+1 receive heartbeat commitIndex -1 LeaderCommit -1
+1 receive heartbeat commitIndex -1 LeaderCommit -1
+2 receive heartbeat commitIndex -1 LeaderCommit -1
+rf start command 101 
+0 len(rflog):1
+SEND ENTRIES rf.nextIndex[peer]:0
+0 command:101 term:1
+SEND ENTRIES rf.nextIndex[peer]:0
+0 command:101 term:1
+0 send AppendEntries peer:2 Term:1 LeaderId:0 PrevLogIndex:-1 LeaderCommit:-1
+0 send AppendEntries peer:1 Term:1 LeaderId:0 PrevLogIndex:-1 LeaderCommit:-1
+1 receive AppendEntries command:101 Term:1 PrevLogIndex:-1 PrevLogTerm:0 LeaderCommit:-11 get log -1 len(rf):0
+1 receive Leadercommit -1 localcommit -1 
+before args.PrevLogIndex:-1
+middle
+after
+0 command:101 term:1
+2 receive AppendEntries command:101 Term:1 PrevLogIndex:-1 PrevLogTerm:0 LeaderCommit:-12 get log -1 len(rf):0
+2 receive Leadercommit -1 localcommit -1 
+before args.PrevLogIndex:-1
+middle
+after
+0 command:101 term:1
+Leader commit update index 0
+0 commit 0 101
+Leader commit update index 0
+0 commit 0 101
+2 receive heartbeat commitIndex -1 LeaderCommit 0
+1 receive heartbeat commitIndex -1 LeaderCommit 0
+2 commit 0 101
+1 commit 0 101
+=====================1pass====================
+2 receive heartbeat commitIndex 0 LeaderCommit 0
+1 receive heartbeat commitIndex 0 LeaderCommit 0
+1 receive heartbeat commitIndex 0 LeaderCommit 0
+2 receive heartbeat commitIndex 0 LeaderCommit 0
+2 receive heartbeat commitIndex 0 LeaderCommit 0
+1 receive heartbeat commitIndex 0 LeaderCommit 0
+2 receive heartbeat commitIndex 0 LeaderCommit 0
+1 receive heartbeat commitIndex 0 LeaderCommit 0
+2 receive heartbeat commitIndex 0 LeaderCommit 0
+1 receive heartbeat commitIndex 0 LeaderCommit 0
+rf start command 102 
+0 len(rflog):2
+SEND ENTRIES rf.nextIndex[peer]:1
+0 command:101 term:1
+SEND ENTRIES rf.nextIndex[peer]:1
+0 command:101 term:1
+rf start command 103 
+0 len(rflog):3
+SEND ENTRIES rf.nextIndex[peer]:1
+0 command:101 term:1
+1 command:102 term:1
+SEND ENTRIES rf.nextIndex[peer]:1
+0 command:101 term:1
+1 command:102 term:1
+rf start command 104 
+0 len(rflog):4
+0 send AppendEntries peer:1 Term:1 LeaderId:0 PrevLogIndex:0 LeaderCommit:0
+0 send AppendEntries peer:2 Term:1 LeaderId:0 PrevLogIndex:0 LeaderCommit:0
+0 send AppendEntries peer:2 Term:1 LeaderId:0 PrevLogIndex:0 LeaderCommit:0
+SEND ENTRIES rf.nextIndex[peer]:1
+0 command:101 term:1
+1 command:102 term:1
+2 command:103 term:1
+SEND ENTRIES rf.nextIndex[peer]:1
+0 command:101 term:1
+1 command:102 term:1
+0 send AppendEntries peer:1 Term:1 LeaderId:0 PrevLogIndex:0 LeaderCommit:0
+0 send AppendEntries peer:1 Term:1 LeaderId:0 PrevLogIndex:0 LeaderCommit:0
+2 command:103 term:1
+0 send AppendEntries peer:2 Term:1 LeaderId:0 PrevLogIndex:0 LeaderCommit:0
+SEND ENTRIES rf.nextIndex[peer]:1
+0 command:101 term:1
+1 command:102 term:1
+2 command:103 term:1
+SEND ENTRIES rf.nextIndex[peer]:1
+0 command:101 term:1
+1 command:102 term:1
+2 command:103 term:1
+0 send AppendEntries peer:1 Term:1 LeaderId:0 PrevLogIndex:0 LeaderCommit:0
+0 send AppendEntries peer:2 Term:1 LeaderId:0 PrevLogIndex:0 LeaderCommit:0
+SEND ENTRIES rf.nextIndex[peer]:1
+0 command:101 term:1
+1 command:102 term:1
+2 command:103 term:1
+SEND ENTRIES rf.nextIndex[peer]:1
+0 command:101 term:1
+1 command:102 term:1
+2 command:103 term:1
+0 send AppendEntries peer:1 Term:1 LeaderId:0 PrevLogIndex:0 LeaderCommit:0
+0 send AppendEntries peer:2 Term:1 LeaderId:0 PrevLogIndex:0 LeaderCommit:0
+peer 1 Timeout,term:1,i'm askvote
+1 ask Vote!! term:2 total:3
+2 vote 1
+101 1
+1 is new LEADER
+101 1
+2 receive heartbeat commitIndex 0 LeaderCommit 0
+rf start command 103 
+1 len(rflog):2
+SEND ENTRIES rf.nextIndex[peer]:1
+0 command:101 term:1
+SEND ENTRIES rf.nextIndex[peer]:1
+0 command:101 term:1
+1 send AppendEntries peer:2 Term:2 LeaderId:1 PrevLogIndex:0 LeaderCommit:0
+1 send AppendEntries peer:0 Term:2 LeaderId:1 PrevLogIndex:0 LeaderCommit:0
+2 receive AppendEntries command:103 Term:2 PrevLogIndex:0 PrevLogTerm:1 LeaderCommit:02 get log 0 len(rf):1
+2 receive Leadercommit 0 localcommit 0 
+before args.PrevLogIndex:0
+0 command:101 term:1
+middle
+0 command:101 term:1
+after
+0 command:101 term:1
+1 command:101 term:1
+Leader commit update index 1
+1 commit 1 103
+SEND ENTRIES rf.nextIndex[peer]:1
+0 command:101 term:1
+1 command:102 term:1
+2 command:103 term:1
+0 send AppendEntries peer:1 Term:1 LeaderId:0 PrevLogIndex:0 LeaderCommit:0
+SEND ENTRIES rf.nextIndex[peer]:1
+0 command:101 term:1
+1 command:102 term:1
+2 command:103 term:1
+0 send AppendEntries peer:2 Term:1 LeaderId:0 PrevLogIndex:0 LeaderCommit:0
+SEND ENTRIES rf.nextIndex[peer]:1
+0 command:101 term:1
+1 send AppendEntries peer:0 Term:2 LeaderId:1 PrevLogIndex:0 LeaderCommit:1
+2 receive heartbeat commitIndex 0 LeaderCommit 1
+2 commit 1 103
+=====================2pass====================
+SEND ENTRIES rf.nextIndex[peer]:1
+0 command:101 term:1
+1 command:102 term:1
+2 command:103 term:1
+SEND ENTRIES rf.nextIndex[peer]:1
+0 command:101 term:1
+1 command:102 term:1
+2 command:103 term:1
+0 send AppendEntries peer:2 Term:1 LeaderId:0 PrevLogIndex:0 LeaderCommit:0
+0 send AppendEntries peer:1 Term:1 LeaderId:0 PrevLogIndex:0 LeaderCommit:0
+SEND ENTRIES rf.nextIndex[peer]:1
+0 command:101 term:1
+1 send AppendEntries peer:0 Term:2 LeaderId:1 PrevLogIndex:0 LeaderCommit:1
+2 receive heartbeat commitIndex 1 LeaderCommit 1
+SEND ENTRIES rf.nextIndex[peer]:1
+0 command:101 term:1
+1 command:102 term:1
+2 command:103 term:1
+SEND ENTRIES rf.nextIndex[peer]:1
+0 command:101 term:1
+1 command:102 term:1
+2 command:103 term:1
+0 send AppendEntries peer:2 Term:1 LeaderId:0 PrevLogIndex:0 LeaderCommit:0
+0 send AppendEntries peer:1 Term:1 LeaderId:0 PrevLogIndex:0 LeaderCommit:0
+SEND ENTRIES rf.nextIndex[peer]:1
+0 command:101 term:1
+1 send AppendEntries peer:0 Term:2 LeaderId:1 PrevLogIndex:0 LeaderCommit:1
+2 receive heartbeat commitIndex 1 LeaderCommit 1
+SEND ENTRIES rf.nextIndex[peer]:1
+0 command:101 term:1
+1 command:102 term:1
+2 command:103 term:1
+0 send AppendEntries peer:1 Term:1 LeaderId:0 PrevLogIndex:0 LeaderCommit:0
+SEND ENTRIES rf.nextIndex[peer]:1
+0 command:101 term:1
+1 command:102 term:1
+2 command:103 term:1
+0 send AppendEntries peer:2 Term:1 LeaderId:0 PrevLogIndex:0 LeaderCommit:0
+SEND ENTRIES rf.nextIndex[peer]:1
+0 command:101 term:1
+1 send AppendEntries peer:0 Term:2 LeaderId:1 PrevLogIndex:0 LeaderCommit:1
+2 receive heartbeat commitIndex 1 LeaderCommit 1
+SEND ENTRIES rf.nextIndex[peer]:1
+0 command:101 term:1
+1 command:102 term:1
+2 command:103 term:1
+SEND ENTRIES rf.nextIndex[peer]:1
+0 command:101 term:1
+1 command:102 term:1
+2 command:103 term:1
+0 send AppendEntries peer:2 Term:1 LeaderId:0 PrevLogIndex:0 LeaderCommit:0
+0 send AppendEntries peer:1 Term:1 LeaderId:0 PrevLogIndex:0 LeaderCommit:0
+SEND ENTRIES rf.nextIndex[peer]:1
+0 command:101 term:1
+1 send AppendEntries peer:0 Term:2 LeaderId:1 PrevLogIndex:0 LeaderCommit:1
+2 receive heartbeat commitIndex 1 LeaderCommit 1
+SEND ENTRIES rf.nextIndex[peer]:1
+0 command:101 term:1
+1 command:102 term:1
+2 command:103 term:1
+SEND ENTRIES rf.nextIndex[peer]:1
+0 command:101 term:1
+1 command:102 term:1
+2 command:103 term:1
+0 send AppendEntries peer:2 Term:1 LeaderId:0 PrevLogIndex:0 LeaderCommit:0
+0 send AppendEntries peer:1 Term:1 LeaderId:0 PrevLogIndex:0 LeaderCommit:0
+SEND ENTRIES rf.nextIndex[peer]:1
+0 command:101 term:1
+1 send AppendEntries peer:0 Term:2 LeaderId:1 PrevLogIndex:0 LeaderCommit:1
+2 receive heartbeat commitIndex 1 LeaderCommit 1
+=====================disconnect(leader2)====================
+=====================connect(leader1)====================
+rf start command 104 
+0 len(rflog):5
+SEND ENTRIES rf.nextIndex[peer]:1
+0 command:101 term:1
+1 command:102 term:1
+2 command:103 term:1
+3 command:104 term:1
+SEND ENTRIES rf.nextIndex[peer]:1
+0 command:101 term:1
+1 command:102 term:1
+2 command:103 term:1
+3 command:104 term:1
+0 send AppendEntries peer:2 Term:1 LeaderId:0 PrevLogIndex:0 LeaderCommit:0
+0 send AppendEntries peer:1 Term:1 LeaderId:0 PrevLogIndex:0 LeaderCommit:0
+AppendEntries:args.Term < rf.currentTerm voterequest from 0 
+SEND ENTRIES rf.nextIndex[peer]:1
+0 command:101 term:1
+1 send AppendEntries peer:0 Term:2 LeaderId:1 PrevLogIndex:0 LeaderCommit:1
+SEND ENTRIES rf.nextIndex[peer]:1
+0 command:101 term:1
+1 send AppendEntries peer:0 Term:2 LeaderId:1 PrevLogIndex:0 LeaderCommit:1
+peer 0 Timeout,term:2,i'm askvote
+0 ask Vote!! term:3 total:3
+2 i'cant vote CandidateId:0 it's LastLogTerm:1 myLastLogTerm:2
+peer 2 Timeout,term:3,i'm askvote
+2 ask Vote!! term:4 total:3
+0 vote 2
+101 1
+102 1
+103 1
+104 1
+104 1
+2 is new LEADER
+101 1
+103 2
+SEND ENTRIES rf.nextIndex[peer]:1
+0 command:101 term:1
+2 send AppendEntries peer:0 Term:4 LeaderId:2 PrevLogIndex:0 LeaderCommit:1
+0 receive AppendEntries command:103 Term:4 PrevLogIndex:0 PrevLogTerm:1 LeaderCommit:10 get log 0 len(rf):1
+0 receive Leadercommit 1 localcommit 0 
+before args.PrevLogIndex:0
+0 command:101 term:1
+middle
+0 command:101 term:1
+after
+0 command:101 term:1
+1 command:101 term:1
+0 commit 1 103
+Leader commit update index 1
+2 commit 1 103
+SEND ENTRIES rf.nextIndex[peer]:1
+0 command:101 term:1
+1 send AppendEntries peer:0 Term:2 LeaderId:1 PrevLogIndex:0 LeaderCommit:1
+0 receive heartbeat commitIndex 1 LeaderCommit 1
+SEND ENTRIES rf.nextIndex[peer]:1
+0 command:101 term:1
+1 send AppendEntries peer:0 Term:2 LeaderId:1 PrevLogIndex:0 LeaderCommit:1
+0 receive heartbeat commitIndex 1 LeaderCommit 1
+SEND ENTRIES rf.nextIndex[peer]:1
+0 command:101 term:1
+1 send AppendEntries peer:0 Term:2 LeaderId:1 PrevLogIndex:0 LeaderCommit:1
+0 receive heartbeat commitIndex 1 LeaderCommit 1
+SEND ENTRIES rf.nextIndex[peer]:1
+0 command:101 term:1
+1 send AppendEntries peer:0 Term:2 LeaderId:1 PrevLogIndex:0 LeaderCommit:1
+0 receive heartbeat commitIndex 1 LeaderCommit 1
+SEND ENTRIES rf.nextIndex[peer]:1
+0 command:101 term:1
+1 send AppendEntries peer:0 Term:2 LeaderId:1 PrevLogIndex:0 LeaderCommit:1
+0 receive heartbeat commitIndex 1 LeaderCommit 1
+SEND ENTRIES rf.nextIndex[peer]:1
+0 command:101 term:1
+1 send AppendEntries peer:0 Term:2 LeaderId:1 PrevLogIndex:0 LeaderCommit:1
+0 receive heartbeat commitIndex 1 LeaderCommit 1
+SEND ENTRIES rf.nextIndex[peer]:1
+0 command:101 term:1
+1 send AppendEntries peer:0 Term:2 LeaderId:1 PrevLogIndex:0 LeaderCommit:1
+0 receive heartbeat commitIndex 1 LeaderCommit 1
+SEND ENTRIES rf.nextIndex[peer]:1
+0 command:101 term:1
+1 send AppendEntries peer:0 Term:2 LeaderId:1 PrevLogIndex:0 LeaderCommit:1
+0 receive heartbeat commitIndex 1 LeaderCommit 1
+SEND ENTRIES rf.nextIndex[peer]:1
+0 command:101 term:1
+1 send AppendEntries peer:0 Term:2 LeaderId:1 PrevLogIndex:0 LeaderCommit:1
+0 receive heartbeat commitIndex 1 LeaderCommit 1
+SEND ENTRIES rf.nextIndex[peer]:1
+0 command:101 term:1
+1 send AppendEntries peer:0 Term:2 LeaderId:1 PrevLogIndex:0 LeaderCommit:1
+0 receive heartbeat commitIndex 1 LeaderCommit 1
+SEND ENTRIES rf.nextIndex[peer]:1
+0 command:101 term:1
+1 send AppendEntries peer:0 Term:2 LeaderId:1 PrevLogIndex:0 LeaderCommit:1
+0 receive heartbeat commitIndex 1 LeaderCommit 1
+SEND ENTRIES rf.nextIndex[peer]:1
+0 command:101 term:1
+1 send AppendEntries peer:0 Term:2 LeaderId:1 PrevLogIndex:0 LeaderCommit:1
+0 receive heartbeat commitIndex 1 LeaderCommit 1
+SEND ENTRIES rf.nextIndex[peer]:1
+0 command:101 term:1
+1 send AppendEntries peer:0 Term:2 LeaderId:1 PrevLogIndex:0 LeaderCommit:1
+0 receive heartbeat commitIndex 1 LeaderCommit 1
+SEND ENTRIES rf.nextIndex[peer]:1
+0 command:101 term:1
+1 send AppendEntries peer:0 Term:2 LeaderId:1 PrevLogIndex:0 LeaderCommit:1
+0 receive heartbeat commitIndex 1 LeaderCommit 1
+SEND ENTRIES rf.nextIndex[peer]:1
+0 command:101 term:1
+1 send AppendEntries peer:0 Term:2 LeaderId:1 PrevLogIndex:0 LeaderCommit:1
+0 receive heartbeat commitIndex 1 LeaderCommit 1
+SEND ENTRIES rf.nextIndex[peer]:1
+0 command:101 term:1
+1 send AppendEntries peer:0 Term:2 LeaderId:1 PrevLogIndex:0 LeaderCommit:1
+0 receive heartbeat commitIndex 1 LeaderCommit 1
+SEND ENTRIES rf.nextIndex[peer]:1
+0 command:101 term:1
+1 send AppendEntries peer:0 Term:2 LeaderId:1 PrevLogIndex:0 LeaderCommit:1
+0 receive heartbeat commitIndex 1 LeaderCommit 1
+SEND ENTRIES rf.nextIndex[peer]:1
+0 command:101 term:1
+1 send AppendEntries peer:0 Term:2 LeaderId:1 PrevLogIndex:0 LeaderCommit:1
+--- FAIL: TestRejoin (3.66s)
+    config.go:453: one(104) failed to reach agreement
+FAIL
+exit status 1
+FAIL	raft	3.663s
